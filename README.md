@@ -23,7 +23,13 @@ Reads a state transition system and performs property checking  using equality a
 
 #### Build from source
 - Download/clone the GitHub repository
-- Simply run ```` ./build.sh ```` from the avr folder to install all dependencies and compile the source code with default options. AVR binaries are generated in the folder ```` build/bin/ ````
+- To install all required dependencies, run
+  ```shell
+  sudo apt update
+  sudo apt install git autoconf gperf libgmp3-dev curl cmake
+  sudo apt install build-essential clang bison flex libreadline-dev gawk tcl-dev libffi-dev git graphviz xdot pkg-config python3 libboost-system-dev libboost-python-dev libboost-filesystem-dev zlib1g-dev
+  ```
+- To compile the source code with default options, simply, run ```` ./build.sh ```` from the avr folder . AVR binaries are generated in the folder ```` build/bin/ ````.
 
 #### How to run AVR
 	python3 avr.py -o <output-path> -n <test-name> <path>/<file>.btor2
