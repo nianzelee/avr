@@ -5,7 +5,9 @@ MATHSATVERSION="5.6.6"
 
 # Build and install yices2
 pushd .
-git clone https://github.com/SRI-CSL/yices2.git
+if [[ ! -d yices2 ]]; then
+  git clone https://github.com/SRI-CSL/yices2.git
+fi
 cd yices2
 autoconf
 ./configure
@@ -13,10 +15,11 @@ make
 cd ..
 popd
 
-
 ### Build and install boolector
 pushd .
-git clone https://github.com/Boolector/boolector.git
+if [[ ! -d boolector ]]; then
+  git clone https://github.com/Boolector/boolector.git
+fi
 cd boolector
 ./contrib/setup-btor2tools.sh
 ./contrib/setup-cadical.sh
@@ -26,26 +29,27 @@ make
 cd ..
 popd
 
-
 ### Build and install mathsat5
 pushd .
-wget https://mathsat.fbk.eu/release/mathsat-${MATHSATVERSION}-linux-x86_64.tar.gz
-tar -xf mathsat-${MATHSATVERSION}-linux-x86_64.tar.gz
-rm -f mathsat-${MATHSATVERSION}-linux-x86_64.tar.gz
-mv mathsat-${MATHSATVERSION}-linux-x86_64 mathsat
+if [[ ! -d mathsat ]]; then
+  wget https://mathsat.fbk.eu/release/mathsat-${MATHSATVERSION}-linux-x86_64.tar.gz
+  tar -xf mathsat-${MATHSATVERSION}-linux-x86_64.tar.gz
+  rm -f mathsat-${MATHSATVERSION}-linux-x86_64.tar.gz
+  mv mathsat-${MATHSATVERSION}-linux-x86_64 mathsat
+fi
 popd
-
 
 ### Build and install btor2tools
 pushd .
-git clone https://github.com/Boolector/btor2tools.git
+if [[ ! -d btor2tools ]]; then
+  git clone https://github.com/Boolector/btor2tools.git
+fi
 cd btor2tools
 ./configure.sh --static
 cd build
 make
 cd ../..
 popd
-
 
 ### By default, z3 installation is disabled
 # ### Build and install z3
@@ -66,9 +70,8 @@ popd
 # make PREFIX="$PWD"
 # popd
 
-
 RETURN="$?"
 if [ "${RETURN}" != "0" ]; then
-    echo "Installing dependencies failed."
-    exit 1
+  echo "Installing dependencies failed."
+  exit 1
 fi
