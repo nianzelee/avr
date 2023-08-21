@@ -265,7 +265,7 @@ def main():
 		raise Exception("avr ERROR: return code %d" % s)
 	else:
 		result = subprocess.check_output("cat %s/work_%s/result.pr" % (opts.out, opts.name), shell=True)
-		print("Verification result: %s" % result)
+		print("Verification result: %s" % result.decode())
 		
 if __name__ == '__main__':
 	main()
