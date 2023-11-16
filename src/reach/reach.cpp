@@ -95,7 +95,7 @@ int main(int argc, char*argv[]) {
     reach.delete_solvers();
 	}else{
 		int ret = reach.verify();
-		cerr << "Verification result: avr-";
+		cerr << "\nVerification result: avr-";
 		switch (ret) {
 		case 0:
 			cerr << "h";
