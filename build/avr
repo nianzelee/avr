@@ -34,6 +34,7 @@ enBmc="${31}"
 enKind="${32}"
 bmcKmax="${33}"
 createAig="${34}"
+parseOnly="${35}"
 
 BM_PATH="$p_dir"
 OUT_DIR="$p_out"
@@ -171,102 +172,102 @@ then
 	run_yosys="false"
 else
 	echo "frontend" >> $OUT_PATH/fconfig
-	cp -R $BM_PATH/* $OUT_PATH
 	echo "yosys" >> $OUT_PATH/fconfig
+
+	cp -R $BM_PATH/$fname $OUT_PATH/$fname
+	run_yosys="true"
 fi
 
 
 if [ "$run_yosys" = "true" ]
 then
 
-OUT_YOSYS="$bm".ilang
-OUT_VERILOG="$bm"_y.v
+	OUT_YOSYS="$bm".ilang
+	OUT_VERILOG="$bm"_y.v
 
-YOSYS_CMD=$OUT_PATH/yosys.tcl
-rm -f $YOSYS_CMD
+	YOSYS_CMD=$OUT_PATH/yosys.tcl
+	rm -f $YOSYS_CMD
 
-echo "yosys read_verilog -noopt -nolatches -sv $OUT_PATH/$fname;" >> $YOSYS_CMD
-if [ $AUTOTOP -eq 1 ]
-then
-	echo "yosys hierarchy -auto-top;" >> $YOSYS_CMD
-else
-	echo "yosys hierarchy -top $top;" >> $YOSYS_CMD
-fi
-echo "yosys hierarchy -libdir $OUT_PATH;" >> $YOSYS_CMD
-echo "yosys hierarchy -check;" >> $YOSYS_CMD
-echo "yosys rename -top $top;" >> $YOSYS_CMD
-echo "yosys delete -output $top;" >> $YOSYS_CMD
-echo "yosys expose $top/"prop_neg";" >> $YOSYS_CMD
-echo "yosys proc;" >> $YOSYS_CMD
-if [ $AUTOOPT -eq 1 ]
-then
-	echo "yosys clean;" >> $YOSYS_CMD
-fi
-
-echo "yosys splitnets -driver;" >> $YOSYS_CMD
-
-if [ $AUTOOPT -eq 1 ]
-then
-	echo "yosys clean;" >> $YOSYS_CMD
-fi
-echo "yosys pmuxtree;" >> $YOSYS_CMD
-if [ $AUTOOPT -eq 1 ]
-then
-	echo "yosys clean;" >> $YOSYS_CMD
-fi
-if [ "$allowMem" = "True" ]
-then
-	echo "yosys memory_dff -wr_only;" >> $YOSYS_CMD
-	echo "yosys memory_collect;" >> $YOSYS_CMD
-else
-	echo "yosys memory;" >> $YOSYS_CMD
-fi
-if [ $AUTOOPT -eq 1 ]
-then
-	echo "yosys clean;" >> $YOSYS_CMD
-fi
-echo "yosys flatten;" >> $YOSYS_CMD
-if [ "$allowMem" = "True" ]
-then
+	echo "yosys read_verilog -noopt -nolatches -I $BM_PATH -sv $OUT_PATH/$fname;" >> $YOSYS_CMD
+	if [ $AUTOTOP -eq 1 ]
+	then
+		echo "yosys hierarchy -auto-top;" >> $YOSYS_CMD
+	else
+		echo "yosys hierarchy -top $top;" >> $YOSYS_CMD
+	fi
+	echo "yosys hierarchy -libdir $OUT_PATH;" >> $YOSYS_CMD
+	echo "yosys hierarchy -check;" >> $YOSYS_CMD
+	echo "yosys rename -top $top;" >> $YOSYS_CMD
+	echo "yosys delete -output $top;" >> $YOSYS_CMD
+	echo "yosys expose $top/"prop_neg";" >> $YOSYS_CMD
+	echo "yosys proc;" >> $YOSYS_CMD
 	if [ $AUTOOPT -eq 1 ]
 	then
 		echo "yosys clean;" >> $YOSYS_CMD
 	fi
-	echo "yosys memory_unpack;" >> $YOSYS_CMD
-fi
-# echo "yosys wreduce;" >> $YOSYS_CMD
-if [ $AUTOOPT -eq 1 ]
-then
-	echo "yosys clean -purge;" >> $YOSYS_CMD
-fi
-echo "yosys setundef -undriven -expose -undef;" >> $YOSYS_CMD
-if [ $AUTOOPT -eq 1 ]
-then
-	echo "yosys clean;" >> $YOSYS_CMD
-fi
 
-if [ "$createAig" == "True" ]
-then
-  echo "yosys aigmap;" >> $YOSYS_CMD
-  echo "yosys techmap;" >> $YOSYS_CMD
-  echo "yosys clean;" >> $YOSYS_CMD
-  echo "yosys aigmap;" >> $YOSYS_CMD
-  echo "yosys techmap;" >> $YOSYS_CMD
-  echo "yosys clean;" >> $YOSYS_CMD
-fi
+	echo "yosys splitnets -driver;" >> $YOSYS_CMD
 
-echo "yosys check;" >> $YOSYS_CMD
-echo "yosys write_ilang $OUT_PATH/$OUT_YOSYS;" >> $YOSYS_CMD
-echo "yosys write_verilog -attr2comment $OUT_PATH/$OUT_VERILOG;" >> $YOSYS_CMD
-echo "yosys write_btor $OUT_PATH/"$bm".btor2;" >> $YOSYS_CMD
-if [ "$createAig" == "True" ]
-then
-  echo "yosys write_aiger $OUT_PATH/"$bm".aig;" >> $YOSYS_CMD
-fi
+	if [ $AUTOOPT -eq 1 ]
+	then
+		echo "yosys clean;" >> $YOSYS_CMD
+	fi
+	echo "yosys pmuxtree;" >> $YOSYS_CMD
+	if [ $AUTOOPT -eq 1 ]
+	then
+		echo "yosys clean;" >> $YOSYS_CMD
+	fi
+	if [ "$allowMem" = "True" ]
+	then
+		echo "yosys memory_dff -wr_only;" >> $YOSYS_CMD
+		echo "yosys memory_collect;" >> $YOSYS_CMD
+	else
+		echo "yosys memory;" >> $YOSYS_CMD
+	fi
+	if [ $AUTOOPT -eq 1 ]
+	then
+		echo "yosys clean;" >> $YOSYS_CMD
+	fi
+	echo "yosys flatten;" >> $YOSYS_CMD
+	if [ "$allowMem" = "True" ]
+	then
+		if [ $AUTOOPT -eq 1 ]
+		then
+			echo "yosys clean;" >> $YOSYS_CMD
+		fi
+		echo "yosys memory_unpack;" >> $YOSYS_CMD
+	fi
+	# echo "yosys wreduce;" >> $YOSYS_CMD
+	if [ $AUTOOPT -eq 1 ]
+	then
+		echo "yosys clean -purge;" >> $YOSYS_CMD
+	fi
+	echo "yosys setundef -undriven -expose -undef;" >> $YOSYS_CMD
+	if [ $AUTOOPT -eq 1 ]
+	then
+		echo "yosys clean;" >> $YOSYS_CMD
+	fi
 
+	if [ "$createAig" == "True" ]
+	then
+		echo "yosys aigmap;" >> $YOSYS_CMD
+		echo "yosys techmap;" >> $YOSYS_CMD
+		echo "yosys clean;" >> $YOSYS_CMD
+		echo "yosys aigmap;" >> $YOSYS_CMD
+		echo "yosys techmap;" >> $YOSYS_CMD
+		echo "yosys clean;" >> $YOSYS_CMD
+	fi
 
-$p_yosys/yosys -c $YOSYS_CMD -Q -T -q -q -l $OUT_PATH/yosys.log
+	echo "yosys check;" >> $YOSYS_CMD
+	echo "yosys write_ilang $OUT_PATH/$OUT_YOSYS;" >> $YOSYS_CMD
+	echo "yosys write_verilog -attr2comment $OUT_PATH/$OUT_VERILOG;" >> $YOSYS_CMD
+	echo "yosys write_btor $OUT_PATH/"$bm".btor2;" >> $YOSYS_CMD
+	if [ "$createAig" == "True" ]
+	then
+		echo "yosys write_aiger $OUT_PATH/"$bm".aig;" >> $YOSYS_CMD
+	fi
 
+	$p_yosys/yosys -c $YOSYS_CMD -Q -T -q -q -l $OUT_PATH/yosys.log
 fi
 
 $p_bin/vwn   $OUT_PATH $p_bin > $OUT_PATH/data/vwn.output 2>> >(tee -a $OUT_PATH/avr.err >&2)  & echo $! > $pidFile
@@ -275,6 +276,11 @@ avr_exit=$?
 if [ "$avr_exit" != 0 ]
 then
 	echo "avr parser error (check file data/vwn.output for details), error code: $avr_exit"
+	exit $avr_exit
+fi
+
+if [ "$parseOnly" == "True" ]
+then
 	exit $avr_exit
 fi
 
