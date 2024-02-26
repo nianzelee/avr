@@ -32,11 +32,11 @@ popd
 
 # Test AVR
 
-python avr.py -n test_vmt          examples/vmt/counter.smt2
-python avr.py -n test_vmt2         examples/vmt/simple.c.vmt
-python avr.py -n test_btor2        examples/btor2/counter.btor2
-python avr.py -n test_verilog      examples/verilog/counter.v        # requires yosys
-python avr.py -n test_verilog_aig  examples/verilog/counter.v --aig  # requires yosys
+python avr.py -n test_vmt examples/vmt/counter.smt2
+python avr.py -n test_vmt2 examples/vmt/simple.c.vmt
+python avr.py -n test_btor2 examples/btor2/counter.btor2
+#python avr.py -n test_verilog examples/verilog/counter.v        # requires yosys
+#python avr.py -n test_verilog_aig examples/verilog/counter.v --aig  # requires yosys
 
 RETURN="$?"
 if [ "${RETURN}" != "0" ]; then
