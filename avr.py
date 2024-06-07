@@ -22,7 +22,7 @@ from distutils.spawn import find_executable
 version=2.1
 
 DEFAULT_TOP="-"
-DEFAULT_BIN="build/bin"
+DEFAULT_BIN="build/bin-yices2"
 DEFAULT_NAME="test"
 DEFAULT_PROP_SELECT="-"
 DEFAULT_INIT_FILE="-"
