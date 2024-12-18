@@ -306,7 +306,7 @@ Inst* Btor2Frontend::get_init(Btor2Line& t, int sz, SORT sort, InstL& args) {
 				InstL args;
 				args.push_back(NumInst::create(width, 32));
 				args.push_back(NumInst::create(sz, 32));
-				args.push_back(NumInst::create(*value, sz));
+				args.push_back(NumInst::create(*value, init_val->get_size()));
 				rhs = OpInst::create(OpInst::ArrayConst, args);
 				done = true;
 			}
@@ -492,13 +492,16 @@ void Btor2Frontend::get_node(NODE_INFO& info, InstL& args) {
 	} break;
 	case BTOR2_TAG_const: {
 		string snum(t.constant);
+		if (snum[0] == '-') {
+			btor2_loge("negative boolean number isn't allowed: found in BTOR2_TAG_const " << snum);
+		}
 		node = NumInst::create(snum, sz, 2, sort);
-//		{
-//			string numstr = NumInst::as(node)->get_mpz()->get_str(2);
-//			if (numstr != snum) {
-//				btor2_loge("number error: gave " << snum << ", got " << numstr);
-//			}
-//		}
+		// {
+		// 	string numstr = NumInst::as(node)->get_mpz()->get_str(2);
+		// 	if (numstr != snum) {
+		// 		btor2_loge("number error: gave " << snum << ", got " << numstr);
+		// 	}
+		// }
 		constants.insert(node);
 		done = true;
 	} break;
@@ -508,25 +511,67 @@ void Btor2Frontend::get_node(NODE_INFO& info, InstL& args) {
 	} break;
 	case BTOR2_TAG_constd: {
 		string snum(t.constant);
-		node = NumInst::create(snum, sz, 10, sort);
-//		{
-//			string numstr = NumInst::as(node)->get_mpz()->get_str(10);
-//			if (numstr != snum) {
-//				btor2_loge("number error: gave " << snum << ", got " << numstr);
-//			}
-//		}
+
+		mpz_t mpz_mask;
+		mpz_init(mpz_mask);
+		mpz_set_str(mpz_mask, snum.c_str(), 10);
+		mpz_class t_mpzc(mpz_mask);
+		string str_num = t_mpzc.get_str(2);
+
+		char bv_val[sz];
+		string str_bv = "";
+		if (snum[0] == '-') {
+			assert (str_num[0] == '-');
+
+			int i = 0;
+			int j = str_num.length() - 1;
+			for(; i < int(str_num.length() - 1); ++i, --j){
+				bv_val[i] = (str_num[j] == '0') ? '1' : '0';
+			}
+			for(; i < sz; ++i){
+				bv_val[i] = '1';
+			}
+			// plus one
+			for(i=0; i < sz; ++i){
+				if(bv_val[i] == '1'){
+					bv_val[i] = '0';
+				}else{
+					bv_val[i] = '1';
+					break;
+				}
+			}
+		} else {
+			int i = 0;
+			int j = str_num.length() - 1;
+			for(; i < int(str_num.length()); ++i, --j){
+				bv_val[i] = str_num[j];
+			}
+			for(; i < sz; ++i){
+				bv_val[i] = '0';
+			}
+		}
+		for(int i=0; i < sz; ++i){
+			str_bv = bv_val[i] + str_bv;
+		}
+		node = NumInst::create(str_bv, sz, 2, sort);
+		// {
+		// 	string numstr = NumInst::as(node)->get_mpz()->get_str(10);
+		// 	if (numstr != snum) {
+		// 		btor2_loge("number error: gave " << snum << ", got " << numstr);
+		// 	}
+		// }
 		constants.insert(node);
 		done = true;
 	} break;
 	case BTOR2_TAG_consth: {
 		string snum(t.constant);
 		node = NumInst::create(snum, sz, 16, sort);
-//		{
-//			string numstr = NumInst::as(node)->get_mpz()->get_str(16);
-//			if (numstr != snum) {
-//				btor2_loge("number error: gave " << snum << ", got " << numstr);
-//			}
-//		}
+		// {
+		// 	string numstr = NumInst::as(node)->get_mpz()->get_str(16);
+		// 	if (numstr != snum) {
+		// 		btor2_loge("number error: gave " << snum << ", got " << numstr);
+		// 	}
+		// }
 		constants.insert(node);
 		done = true;
 	} break;

@@ -2416,7 +2416,7 @@ void m5_API::inst2yices(Inst*e, bool bvAllConstraints) {
 
 #ifdef INTERPRET_EX_CC
 	if (m_allow_ex_cc) {
-		if (Config::g_uf_mult_only || (m_mapper->fetch_op(e) == TheoryMapper::EUF_OP) ||
+		if (Config::g_uf_heavy_only || (m_mapper->fetch_op(e) == TheoryMapper::EUF_OP) ||
 				(m_mapper->fetch_op(e->t_simple) == TheoryMapper::EUF_OP)) {
 			Inst* simplified = e->t_simple;
 			if (OpInst::as(e) && e != simplified) {
@@ -2632,7 +2632,14 @@ void m5_API::inst2yices(Inst*e, bool bvAllConstraints) {
 
 					Inst* defval;
 					for (int i = 0; i <= maxaddress; i++) {
-						string v = value.substr(i*size, size);
+						string v;
+						if (value.size() <= size) {
+							v = value;
+						} else if (value.size() > (i*size)) {
+							v = value.substr(i*size, size);
+						} else {
+							v = "0";
+						}
 						Inst* data = NumInst::create(v, size, 2, SORT());
 						if (i == 0) {
 							defval = data;
@@ -3501,7 +3508,7 @@ void m5_API::inst2yices(Inst*e, bool bvAllConstraints) {
 
 #ifdef INTERPRET_EX_CC
 	if (m_allow_ex_cc) {
-		if (Config::g_uf_mult_only || (m_mapper->fetch_op(e) == TheoryMapper::EUF_OP) ||
+		if (Config::g_uf_heavy_only || (m_mapper->fetch_op(e) == TheoryMapper::EUF_OP) ||
 				(m_mapper->fetch_op(e->t_simple) == TheoryMapper::EUF_OP)) {
 			Inst* simplified = e->t_simple;
 			if (e != simplified) {

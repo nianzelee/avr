@@ -8,15 +8,15 @@
 ######################################################################################
 
 
-import os, sys, datetime, time, resource, argparse, shutil, signal
-from subprocess import Popen, PIPE, DEVNULL, STDOUT
+import os, sys, time, argparse, shutil, signal
+from subprocess import Popen, PIPE
 from enum import Enum
 
-version=2.1
+version="2.2.3"
 start_time = time.time()
 
 cmdSuffix = ""
-maxWorkers = 8
+maxWorkers = 16
 
 optSuffix = " "
 commands = []
@@ -30,14 +30,14 @@ DEFAULT_OUT="output"
 DEFAULT_NAME="test"
 DEFAULT_WORKERS="workers.txt"
 #DEFAULT_BIN="bin"
-DEFAULT_TIMEOUT=3600
-DEFAULT_MEMOUT=16000
+DEFAULT_TIMEOUT=3590
+DEFAULT_MEMOUT=118000
 DEFAULT_PRINT_SMT2=False
-DEFAULT_PRINT_WITNESS=True
+DEFAULT_PRINT_WITNESS=False
 
 maxTimeSec = DEFAULT_TIMEOUT
 maxMemMB = DEFAULT_MEMOUT
-maxInitW = 2
+maxInitW = 16
 resultW = 0
 out_path = DEFAULT_OUT + "/" + DEFAULT_NAME
 
@@ -431,8 +431,11 @@ def terminate_ps(pid_s):
 	valid, pid = is_valid_pid(pid_s)
 	if (valid):
 		if (check_pid(pid)):
-			os.kill(pid, signal.SIGTERM)
-			os.kill(pid, signal.SIGKILL)
+			try:
+				os.kill(pid, signal.SIGTERM)
+				os.kill(pid, signal.SIGKILL)
+			except ProcessLookupError:
+				pass
 	#else:
 		#assert(0)
 

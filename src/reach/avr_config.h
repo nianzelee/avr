@@ -175,8 +175,8 @@
 #define NAME_SABV   "sa"
 #define NAME_EXCC   "ec"
 
-#define NAME_UF_UNORDERED   "+unordered"
-#define NAME_UF_MULT_ONLY   "+mult"
+#define NAME_UF_NO_PROPAGATE   "+nopropagate"
+#define NAME_UF_HEAVY_ONLY   "+heavy"
 #define NAME_UF_NO_BITWISE  "+nobitwise"
 #define NAME_UF_NO_SEXT     "+nosignex"
 #define NAME_UF_NO_SHIFT    "+noshift"
@@ -263,8 +263,8 @@ public:
 	static int g_forward_check;
 	static int g_fineness;
 	static int g_lazy_assume;
-	static bool g_uf_unordered;
-	static bool g_uf_mult_only;
+	static bool g_uf_no_propagate;
+	static bool g_uf_heavy_only;
 	static bool g_uf_no_bitwise;
 	static bool g_uf_no_sext;
 	static bool g_uf_no_shift;

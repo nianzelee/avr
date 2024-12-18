@@ -2131,6 +2131,36 @@ public:
 		return m_mpz.get_si();
 	}
 
+	bool num_is_zero() {
+		assert (get_sort_type() == bvtype);
+		return mpz_sgn(get_mpz()->get_mpz_t()) == 0;
+	}
+
+	bool num_is_one() {
+		assert (get_sort_type() == bvtype);
+		return mpz_cmp_ui(get_mpz()->get_mpz_t(), 1) == 0;
+	}
+
+	int num_cmp(NumInst* rhs, bool sign) {
+		assert (get_sort_type() == bvtype);
+		if (!sign) {
+			return mpz_cmp(get_mpz()->get_mpz_t(), rhs->get_mpz()->get_mpz_t());
+		} else {
+			assert(get_size() > 1);
+			string str_lhs = get_mpz()->get_str(2);
+			string str_rhs = rhs->get_mpz()->get_str(2);
+			if (str_lhs[0] == '0' && str_rhs[0] == '0') {
+				return mpz_cmp(get_mpz()->get_mpz_t(), rhs->get_mpz()->get_mpz_t());
+			} else if (str_lhs[0] == '0' && str_rhs[0] == '1') {
+				return 1;
+			} else if (str_lhs[0] == '1' && str_rhs[0] == '0') {
+				return -1;
+			} else {
+				return (-1)*mpz_cmpabs(get_mpz()->get_mpz_t(), rhs->get_mpz()->get_mpz_t());
+			}
+		}
+	}
+
 	static Inst *read_bin();
 	virtual void write_bin();
 
@@ -2155,6 +2185,8 @@ private:
 
 	// you can't call!
 	NumInst(unsigned long num, unsigned size, bool fromSystem, SORT sort) {
+		if (size == 1)
+			assert(num == 0 || num == 1);
 		m_sort = sort;
 		m_size = size;
 		m_mpz = mpz_class(num);
@@ -2188,6 +2220,8 @@ private:
 // 		m_mpz.set_str(snum, base);
 // 	}
 	NumInst(mpz_class mnum, unsigned size, bool fromSystem, SORT sort) {
+		if (size == 1)
+			assert(mnum.get_si() == 0 || mnum.get_si() == 1);
 		m_sort = sort;
 		m_size = size;
 		m_mpz = mnum;
@@ -2554,8 +2588,9 @@ public:
 
 #ifdef INTERPRET_EX_UF
   int get_simple_version();
-  bool is_unordered_uf();
 #endif
+void propagate_uf();
+bool is_heavy_uf();
 
 protected:
 	OpType m_op;

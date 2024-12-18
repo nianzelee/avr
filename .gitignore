@@ -6,11 +6,13 @@
 .idea/
 
 build/bin*/dpa
-build/bin*/reach
+build/bin*/reach*
 build/bin*/vwn
 
+hwmcc*/
 deps/*
 output/*
+xtras/*/
 
 *.a
 *.o
@@ -23,6 +25,7 @@ output/*
 .settings/*
 .d/*
 gmon.out
+.*DS_Store
 
 # But not these files
 !.gitignore

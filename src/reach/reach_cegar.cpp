@@ -94,7 +94,7 @@ void Reach::retrieve_ab_sol(Solver* solver, Inst* e, InstS& relSig, InstS& relCo
 
 #ifdef INTERPRET_EX_CC
   if (solver->m_allow_ex_cc) {
-		if (Config::g_uf_mult_only || (_abstract_mapper->fetch_op(e) == Solver::TheoryMapper::EUF_OP) ||
+		if (Config::g_uf_heavy_only || (_abstract_mapper->fetch_op(e) == Solver::TheoryMapper::EUF_OP) ||
 				(_abstract_mapper->fetch_op(e->t_simple) == Solver::TheoryMapper::EUF_OP)) {
       Inst* simplified = e->t_simple;
       if (e != simplified)
@@ -170,7 +170,7 @@ void Reach::retrieve_cex_val(Inst* e, Solver*solver, bool abstract, bool init_vi
   e->set_visit();
 
 #ifdef INTERPRET_EX_CC
-  if (Config::g_uf_mult_only || solver->m_allow_ex_cc && abstract && evalSimple)
+  if (Config::g_uf_heavy_only || solver->m_allow_ex_cc && abstract && evalSimple)
   {
 		if ((_abstract_mapper->fetch_op(e) == Solver::TheoryMapper::EUF_OP) ||
 				(_abstract_mapper->fetch_op(e->t_simple) == Solver::TheoryMapper::EUF_OP)) {
@@ -539,11 +539,13 @@ void Reach::refine(InstL& hardConstraints, ABSTRACT_CUBE& abCube, Inst *top_wo_r
 				else
 					hardConstraints.push_back(v.first);
 			}
-			for (auto& v: _assume_T) {
-				if (Config::g_lazy_assume > LAZY_ASSUME_NONE)
-					viol.push_back(v.first);
-				else
-					hardConstraints.push_back(v.first);
+			if (_frame_idx != 0) {
+				for (auto& v: _assume_T) {
+					if (Config::g_lazy_assume > LAZY_ASSUME_NONE)
+						viol.push_back(v.first);
+					else
+						hardConstraints.push_back(v.first);
+				}
 			}
 			if (!hardConstraints.empty()) {
 				viol.push_back(OpInst::create(OpInst::LogAnd, hardConstraints));
@@ -3480,10 +3482,6 @@ void Reach::generalize_unsat_query(BR_QUERY& q, InstLL& muses) {
 void Reach::generalize_unsat_query(BR_QUERY& q, InstLL& muses) {
   bool en_y2_core = true;
 
-#ifdef BACKEND_Z3
-  en_y2_core = false;
-#endif
-
 #ifdef USE_Z3_CORE
   en_y2_core = false;
 #endif
@@ -4517,7 +4515,9 @@ int Reach::ccext_block() {
 			s_check_result = y_solver.solver_main->s_check(AB_QUERY_TIMEOUT, false);
 			if (s_check_result == AVR_QUSAT) {
 				assumptions.clear();
-				cube = conjunct_cube.front();
+				if (!conjunct_cube.empty()) {
+					cube = conjunct_cube.front();
+				}
 				// possible in relational inputs (like vmt - gulwani_cegar1)
 				AVR_LOG(15, 0, "\t(warning: F[" << frameIdx << "] has become UNSAT)" << endl);
 
@@ -4850,10 +4850,6 @@ int Reach::ccext_block() {
 			Solver* mus_solver  = y_solver.solver_main;
 			Solver* core_solver = y_solver.solver_main;
 
-#ifdef BACKEND_Z3
-			core_solver = mus_solver;
-#endif
-
 //			generalize_unsat_query(brQuery, muses);
       generalize_unsat_query(brQuery, muses, core_solver, mus_solver);
 			res = 1;
@@ -4966,10 +4962,9 @@ int Reach::ccext_block() {
 #ifdef AVR_ADD_INITS_ENABLE
 			Inst *ve_gcube_before = ve_gcube;
 			AVR_LOG(6, 1, "## call add_inits_to_gcube in ccext_block !" << endl);
-//			cout << "Cube: " << *cube << endl;
-//			cout << "Gcube: " << *ve_gcube << endl;
-//			cout << "Gcubes: " << gcubes << endl;
-//			cout << "Gcubes$: " << gcubes_next << endl;
+			// cout << "Cube: " << *cube << endl;
+			// cout << "Gcube: " << *ve_gcube << endl;
+			// cout << "Gcubes: " << gcubes << endl;
 
 			InstL conjunct_ve_gcube;
 			collect_cubes(ve_gcube, true);
@@ -6127,14 +6122,13 @@ int Reach::verify() {
 						conjunct_prop.push_back(_ve_prop_eq_0);
 						conjunct_prop.push_back(_ve_model);
 						InstL conjunct_prop_wo_ref = conjunct_prop;
-						for (InstL::iterator it3 = _negated_refs.begin(); it3 != _negated_refs.end(); ++it3)
+						for (InstL::iterator it3 = _negated_refs.begin(); it3 != _negated_refs.end(); ++it3) {
+							if (*it3 == _ve_assume_T)
+								continue;
 							conjunct_prop.push_back(*it3);
+						}
 						if (Config::g_lazy_assume >= LAZY_ASSUME_L2)
 							conjunct_prop.push_back(_ve_assume);
-						if (Config::g_lazy_assume >= LAZY_ASSUME_L1) {
-							for (auto& v: _assume_T)
-								conjunct_prop.push_back(v.first);
-						}
 
 						ve_prop = OpInst::create(OpInst::LogAnd, conjunct_prop);
 						AVR_LOG(15, 0, "[Basis Step]:" << endl);

@@ -1818,69 +1818,429 @@ int OpInst::get_simple_version() {
   }
 	return version;
 }
+#endif
 
-bool OpInst::is_unordered_uf() {
-  bool result = false;
+void OpInst::propagate_uf() {
   switch (m_op) {
-    case BitWiseAnd:
-    case BitWiseOr:
-    case BitWiseXor:
-    case BitWiseXNor:
+  	case Minus: {
+  		const InstL* ch = get_children();
+  		if (ch->size() == 1) {
+  			InstL::const_iterator cit = ch->begin();
+  			Inst* lhs = (*cit)->get_simple();
+  			if (NumInst::as(lhs) && NumInst::as(lhs)->num_is_zero()) {
+  				// -0 = 0
+  				t_simple = lhs;
+  			}
+  		}
+  	} break;
+  	case Add: {
+  		const InstL* ch = get_children();
+  		if (ch->size() == 2) {
+  			InstL::const_iterator cit = ch->begin();
+  			Inst* lhs = (*cit)->get_simple();
+  			cit++;
+  			Inst* rhs = (*cit)->get_simple();
+  			if (NumInst::as(lhs) && NumInst::as(lhs)->num_is_zero()) {
+  				// 0 + rhs = rhs
+  				t_simple = rhs;
+  			} else if (NumInst::as(rhs) && NumInst::as(rhs)->num_is_zero()) {
+  				// lhs + 0 = lhs
+  				t_simple = lhs;
+  			} else {
+  				// InstL newCh;
+  				// for (InstL::const_iterator cit = ch->begin(); cit != ch->end(); cit++)
+  				// 	newCh.push_front(*cit);
+  				// t_simple = OpInst::create(m_op, newCh, get_size(), false);
+  			}
+  		}
+  	} break;
+  	case Sub: {
+  		const InstL* ch = get_children();
+  		if (ch->size() == 2) {
+  			InstL::const_iterator cit = ch->begin();
+  			Inst* lhs = (*cit)->get_simple();
+  			cit++;
+  			Inst* rhs = (*cit)->get_simple();
+  			if (NumInst::as(rhs) && NumInst::as(rhs)->num_is_zero()) {
+  				// lhs - 0 = lhs
+  				t_simple = lhs;
+  			} else if (lhs == rhs) {
+  				// x - x = 0
+  				t_simple = NumInst::create(0, get_size(), get_sort());
+  			}
+  		}
+  	} break;
+  	case Mult: {
+  		const InstL* ch = get_children();
+  		if (ch->size() == 2) {
+  			InstL::const_iterator cit = ch->begin();
+  			Inst* lhs = (*cit)->get_simple();
+  			cit++;
+  			Inst* rhs = (*cit)->get_simple();
+  			if (NumInst::as(lhs) && NumInst::as(lhs)->num_is_zero()) {
+  				// 0 * rhs = 0
+  				t_simple = NumInst::create(0, get_size(), get_sort());
+  			} else if (NumInst::as(rhs) && NumInst::as(rhs)->num_is_zero()) {
+  				// lhs * 0 = 0
+  				t_simple = NumInst::create(0, get_size(), get_sort());
+  			} else if (NumInst::as(lhs) && NumInst::as(lhs)->num_is_one()) {
+  				// 1 * rhs = rhs
+  				t_simple = rhs;
+  			} else if (NumInst::as(rhs) && NumInst::as(rhs)->num_is_one()) {
+  				// lhs * 1 = lhs
+  				t_simple = lhs;
+  			} else {
+  				// InstL newCh;
+  				// for (InstL::const_iterator cit = ch->begin(); cit != ch->end(); cit++)
+  				// 	newCh.push_front(*cit);
+  				// t_simple = OpInst::create(m_op, newCh, get_size(), false);
+  			}
+  		}
+  	} break;
+  	case Div:
+  	case SDiv: {
+  		const InstL* ch = get_children();
+  		if (ch->size() == 2) {
+  			InstL::const_iterator cit = ch->begin();
+  			Inst* lhs = (*cit)->get_simple();
+  			cit++;
+  			Inst* rhs = (*cit)->get_simple();
+  			if (NumInst::as(rhs) && NumInst::as(rhs)->num_is_zero()) {
+  				// divide by 0, do nothing
+  			} else if (NumInst::as(lhs) && NumInst::as(lhs)->num_is_zero()) {
+  				// 0 / rhs = ? (since rhs can be 0)
+  				// t_simple = NumInst::create(0, get_size(), get_sort());
+  			} else if (get_size() > 1 && NumInst::as(rhs) && NumInst::as(rhs)->num_is_one()) {
+  				// lhs / 1 = lhs (if not boolean)
+  				t_simple = lhs;
+  			} else if (lhs == rhs) {
+  				// x / x = ? (since x can be 0)
+  				// t_simple = NumInst::create(1, get_size(), get_sort());
+  			}
+  		}
+  	} break;
+  	case Rem:
+  	case SRem:
+  	case SMod: {
+  		const InstL* ch = get_children();
+  		if (ch->size() == 2) {
+  			InstL::const_iterator cit = ch->begin();
+  			Inst* lhs = (*cit)->get_simple();
+  			cit++;
+  			Inst* rhs = (*cit)->get_simple();
+  			if (NumInst::as(rhs) && NumInst::as(rhs)->num_is_zero()) {
+  				// modulo by 0, do nothing
+  			} else if (NumInst::as(lhs) && NumInst::as(lhs)->num_is_zero()) {
+  				// 0 % rhs = ? (since rhs can be 0)
+  				// t_simple = NumInst::create(0, get_size(), get_sort());
+  			} else if (get_size() > 1 && NumInst::as(rhs) && NumInst::as(rhs)->num_is_one()) {
+  				// lhs % 1 = 0 (if not boolean)
+  				t_simple = NumInst::create(0, get_size(), get_sort());
+  			} else if (lhs == rhs) {
+  				// x % x = ? (since x can be 0)
+  				// t_simple = NumInst::create(0, get_size(), get_sort());
+  			}
+  		}
+  	} break;
+  	case Gr: {
+  		const InstL* ch = get_children();
+  		assert (ch->size() == 2);
+  		InstL::const_iterator cit = ch->begin();
+  		Inst* lhs = (*cit)->get_simple();
+  		cit++;
+  		Inst* rhs = (*cit)->get_simple();
+  		if (NumInst::as(lhs) && NumInst::as(lhs)->num_is_zero()) {
+  			// 0 > x = false
+  			t_simple = NumInst::create(0, 1, SORT());
+  		} else if (lhs == rhs) {
+  			// x > x = false
+  			t_simple = NumInst::create(0, 1, SORT());
+  		} else if (NumInst::as(lhs) && NumInst::as(rhs)) {
+  			// both are numbers
+  			if (NumInst::as(lhs)->num_cmp(NumInst::as(rhs), false) > 0) {
+  				t_simple = NumInst::create(1, 1, SORT());
+  			} else {
+  				t_simple = NumInst::create(0, 1, SORT());
+  			}
+  		}
+  	} break;
+  	case SGr: {
+  		const InstL* ch = get_children();
+  		assert (ch->size() == 2);
+  		InstL::const_iterator cit = ch->begin();
+  		Inst* lhs = (*cit)->get_simple();
+  		cit++;
+  		Inst* rhs = (*cit)->get_simple();
+  		if (lhs == rhs) {
+  			// x >s x = false
+  			t_simple = NumInst::create(0, 1, SORT());
+  		} else if (NumInst::as(lhs) && NumInst::as(rhs)) {
+  			// both are numbers
+  			if (get_size() > 1) {
+  				if (NumInst::as(lhs)->num_cmp(NumInst::as(rhs), true) > 0) {
+  					t_simple = NumInst::create(1, 1, SORT());
+  				} else {
+  					t_simple = NumInst::create(0, 1, SORT());
+  				}
+  			}
+  		}
+  	} break;
+  	case Le: {
+  		const InstL* ch = get_children();
+  		assert (ch->size() == 2);
+  		InstL::const_iterator cit = ch->begin();
+  		Inst* lhs = (*cit)->get_simple();
+  		cit++;
+  		Inst* rhs = (*cit)->get_simple();
+  		if (NumInst::as(rhs) && NumInst::as(rhs)->num_is_zero()) {
+  			// x < 0 = false
+  			t_simple = NumInst::create(0, 1, SORT());
+  		} else if (lhs == rhs) {
+  			// x < x = false
+  			t_simple = NumInst::create(0, 1, SORT());
+  		} else if (NumInst::as(lhs) && NumInst::as(rhs)) {
+  			// both are numbers
+  			if (NumInst::as(lhs)->num_cmp(NumInst::as(rhs), false) < 0) {
+  				t_simple = NumInst::create(1, 1, SORT());
+  			} else {
+  				t_simple = NumInst::create(0, 1, SORT());
+  			}
+  		}
+  	} break;
+  	case SLe: {
+  		const InstL* ch = get_children();
+  		assert (ch->size() == 2);
+  		InstL::const_iterator cit = ch->begin();
+  		Inst* lhs = (*cit)->get_simple();
+  		cit++;
+  		Inst* rhs = (*cit)->get_simple();
+  		if (lhs == rhs) {
+  			// x <s x = false
+  			t_simple = NumInst::create(0, 1, SORT());
+  		} else if (NumInst::as(lhs) && NumInst::as(rhs)) {
+  			// both are numbers
+  			if (get_size() > 1) {
+  				if (NumInst::as(lhs)->num_cmp(NumInst::as(rhs), true) < 0) {
+  					t_simple = NumInst::create(1, 1, SORT());
+  				} else {
+  					t_simple = NumInst::create(0, 1, SORT());
+  				}
+  			}
+  		}
+  	} break;
+  	case GrEq: {
+  		const InstL* ch = get_children();
+  		assert (ch->size() == 2);
+  		InstL::const_iterator cit = ch->begin();
+  		Inst* lhs = (*cit)->get_simple();
+  		cit++;
+  		Inst* rhs = (*cit)->get_simple();
+  		if (NumInst::as(rhs) && NumInst::as(rhs)->num_is_zero()) {
+  			// x >= 0 = true
+  			t_simple = NumInst::create(1, 1, SORT());
+  		} else if (lhs == rhs) {
+  			// x >= x = true
+  			t_simple = NumInst::create(1, 1, SORT());
+  		} else if (NumInst::as(lhs) && NumInst::as(rhs)) {
+  			// both are numbers
+  			if (NumInst::as(lhs)->num_cmp(NumInst::as(rhs), false) >= 0) {
+  				t_simple = NumInst::create(1, 1, SORT());
+  			} else {
+  				t_simple = NumInst::create(0, 1, SORT());
+  			}
+  		}
+  	} break;
+  	case SGrEq: {
+  		const InstL* ch = get_children();
+  		assert (ch->size() == 2);
+  		InstL::const_iterator cit = ch->begin();
+  		Inst* lhs = (*cit)->get_simple();
+  		cit++;
+  		Inst* rhs = (*cit)->get_simple();
+  		if (lhs == rhs) {
+  			// x >=s x = true
+  			t_simple = NumInst::create(1, 1, SORT());
+  		} else if (NumInst::as(lhs) && NumInst::as(rhs)) {
+  			// both are numbers
+  			if (get_size() > 1) {
+  				if (NumInst::as(lhs)->num_cmp(NumInst::as(rhs), true) >= 0) {
+  					t_simple = NumInst::create(1, 1, SORT());
+  				} else {
+  					t_simple = NumInst::create(0, 1, SORT());
+  				}
+  			}
+  		}
+  	} break;
+  	case LeEq: {
+  		const InstL* ch = get_children();
+  		assert (ch->size() == 2);
+  		InstL::const_iterator cit = ch->begin();
+  		Inst* lhs = (*cit)->get_simple();
+  		cit++;
+  		Inst* rhs = (*cit)->get_simple();
+  		if (NumInst::as(lhs) && NumInst::as(lhs)->num_is_zero()) {
+  			// 0 <= x = true
+  			t_simple = NumInst::create(1, 1, SORT());
+  		} else if (lhs == rhs) {
+  			// x <= x = true
+  			t_simple = NumInst::create(1, 1, SORT());
+  		} else if (NumInst::as(lhs) && NumInst::as(rhs)) {
+  			// both are numbers
+  			if (NumInst::as(lhs)->num_cmp(NumInst::as(rhs), false) <= 0) {
+  				t_simple = NumInst::create(1, 1, SORT());
+  			} else {
+  				t_simple = NumInst::create(0, 1, SORT());
+  			}
+  		}
+  	} break;
+  	case SLeEq: {
+  		const InstL* ch = get_children();
+  		assert (ch->size() == 2);
+  		InstL::const_iterator cit = ch->begin();
+  		Inst* lhs = (*cit)->get_simple();
+  		cit++;
+  		Inst* rhs = (*cit)->get_simple();
+		if (lhs == rhs) {
+  			// x <=s x = true
+  			t_simple = NumInst::create(1, 1, SORT());
+		} else if (NumInst::as(lhs) && NumInst::as(rhs)) {
+			// both are numbers
+  			if (get_size() > 1) {
+  				if (NumInst::as(lhs)->num_cmp(NumInst::as(rhs), true) <= 0) {
+  					t_simple = NumInst::create(1, 1, SORT());
+  				} else {
+  					t_simple = NumInst::create(0, 1, SORT());
+  				}
+  			}
+		}
+  	} break;
+  	case BitWiseAnd: {
+  		const InstL* ch = get_children();
+  		if (ch->size() == 2) {
+  			InstL::const_iterator cit = ch->begin();
+  			Inst* lhs = (*cit)->get_simple();
+  			cit++;
+  			Inst* rhs = (*cit)->get_simple();
+  			if (NumInst::as(lhs) && NumInst::as(lhs)->num_is_zero()) {
+  				// 0 & rhs = 0
+  				t_simple = NumInst::create(0, get_size(), get_sort());
+  			} else if (NumInst::as(rhs) && NumInst::as(rhs)->num_is_zero()) {
+  				// lhs & 0 = 0
+  				t_simple = NumInst::create(0, get_size(), get_sort());
+  			} else if (lhs == rhs) {
+  				// x & x = x
+  				t_simple = lhs;
+  			} else {
+  				// InstL newCh;
+  				// for (InstL::const_iterator cit = ch->begin(); cit != ch->end(); cit++)
+  				// 	newCh.push_front(*cit);
+  				// t_simple = OpInst::create(m_op, newCh, get_size(), false);
+  			}
+  		}
+  	} break;
+  	case BitWiseOr: {
+  		const InstL* ch = get_children();
+  		if (ch->size() == 2) {
+  			InstL::const_iterator cit = ch->begin();
+  			Inst* lhs = (*cit)->get_simple();
+  			cit++;
+  			Inst* rhs = (*cit)->get_simple();
+  			if (NumInst::as(lhs) && NumInst::as(lhs)->num_is_zero()) {
+  				// 0 | rhs = rhs
+  				t_simple = rhs;
+  			} else if (NumInst::as(rhs) && NumInst::as(rhs)->num_is_zero()) {
+  				// lhs | 0 = lhs
+  				t_simple = lhs;
+  			} else if (lhs == rhs) {
+  				// x & x = x
+  				t_simple = lhs;
+  			} else {
+  				// InstL newCh;
+  				// for (InstL::const_iterator cit = ch->begin(); cit != ch->end(); cit++)
+  				// 	newCh.push_front(*cit);
+  				// t_simple = OpInst::create(m_op, newCh, get_size(), false);
+  			}
+  		}
+  	} break;
+    case BitWiseXor: {
+    	const InstL* ch = get_children();
+    	if (ch->size() == 2) {
+    		InstL::const_iterator cit = ch->begin();
+    		Inst* lhs = (*cit)->get_simple();
+    		cit++;
+    		Inst* rhs = (*cit)->get_simple();
+			if (lhs == rhs) {
+    			// x xor x = 0
+    			t_simple = NumInst::create(0, get_size(), get_sort());
+    		} else {
+    			// InstL newCh;
+    			// for (InstL::const_iterator cit = ch->begin(); cit != ch->end(); cit++)
+    			// 	newCh.push_front(*cit);
+    			// t_simple = OpInst::create(m_op, newCh, get_size(), false);
+    		}
+    	}
+    } break;
+  	case BitWiseXNor:
     case BitWiseNor:
-    case BitWiseNand:
-    case Add:
-    case Mult:
-    	result = true;
-      break;
-//    case Sub:
-//    case AddC:
-//    case Div:
-//    case Mod:
-//    case Minus:
-//    case VShiftL:
-//    case VShiftR:
-//    case VAShiftL:
-//    case VAShiftR:
-//    case VRotateL:
-//    case VRotateR:
-//    case VEx:
-//    case RotateL:
-//    case RotateR:
-//    case Unknown:
-//    case Future:
-//    case ShiftL:
-//    case AShiftL:
-//    case ShiftR:
-//    case AShiftR:
-//    case Extract:
-//    case Concat:
-//    case Eq:
-//    case NotEq:
-//    case Ternary:
-//    case Gr:
-//    case Le:
-//    case GrEq:
-//    case LeEq:
-//    case ReductionAnd:
-//    case ReductionOr:
-//    case ReductionXor:
-//    case ReductionXNor:
-//    case ReductionNand:
-//    case ReductionNor:
-//    case LogNot:
-//    case LogNand:
-//    case LogNor:
-//    case LogAnd:
-//    case LogXor:
-//    case LogXNor:
-//    case LogOr:
-//      break;
-    default:
+    case BitWiseNand: {
+	    // const InstL* ch = get_children();
+    	// assert(ch);
+	    //
+    	// InstL newCh;
+    	// for (InstL::const_iterator cit = ch->begin(); cit != ch->end(); cit++)
+    	// 	newCh.push_front(*cit);
+    	// t_simple = OpInst::create(m_op, newCh, get_size(), false);
+    } break;
+  	case ShiftL:
+  	case ShiftR:
+  	case AShiftL:
+  	case AShiftR:
+	case VShiftL:
+    case VShiftR:
+    case VAShiftL:
+    case VAShiftR: {
+  		const InstL* ch = get_children();
+  		assert (ch->size() == 2);
+  		InstL::const_iterator cit = ch->begin();
+  		Inst* lhs = (*cit)->get_simple();
+  		cit++;
+  		Inst* rhs = (*cit)->get_simple();
+  		if (NumInst::as(lhs) && NumInst::as(lhs)->num_is_zero()) {
+  			// 0 shift rhs = 0
+  			t_simple = NumInst::create(0, get_size(), get_sort());
+  		} else if (NumInst::as(rhs) && NumInst::as(rhs)->num_is_zero()) {
+  			// lhs shift 0 = lhs
+  			t_simple = lhs;
+  		}
+  	} break;
+  	default:
       ;
   }
+
+//   if (this != this->get_simple()) {
+// 	cout << "uf_prop: " << *this << " -> " << *(this->t_simple) << endl;
+//   }
+}
+
+bool OpInst::is_heavy_uf() {
+	bool result = false;
+	switch (m_op) {
+		case Mult:
+		case Div:
+		case SDiv:
+		case Rem:
+		case SRem:
+		case SMod:
+		// case ArrayConst:
+		// case ArraySelect:
+		case ArrayStore:
+			result = (get_size() > 4);
+			break;
+		default:
+			;
+	}
 	return result;
 }
-#endif
 
 Inst* OpInst::create(OpType op, Inst* exp1, Inst* exp2, Inst* exp3, int o_size, bool to_simplify, Inst* wire, SORT sort) {
 	if (op == OpInst::LogNot) {
@@ -3398,16 +3758,8 @@ Inst* OpInst::create(OpInst::OpType op, InstL exps, int o_size, bool to_simplify
 //					return e->t_simple;
 					// do nothing, done
 				}
-				else if (Config::g_uf_unordered) {
-					if (e->is_unordered_uf()) {
-						const InstL* ch = e->get_children();
-						assert(ch);
-
-						InstL newCh;
-						for (InstL::const_iterator cit = ch->begin(); cit != ch->end(); cit++)
-							newCh.push_front(*cit);
-						e->t_simple = OpInst::create(op, newCh, e->get_size(), false);
-					}
+				else if (!Config::g_uf_no_propagate) {
+					e->propagate_uf();
 				}
 			}
 		}
@@ -5427,16 +5779,16 @@ void OpInst::calc_size() {
 		assert((*cit)->get_type() == Num);
 		unsigned width = NumInst::as(*cit)->get_num();
 		cit++;
+		unsigned sz = NumInst::as(*cit)->get_num();
+		cit++;
 		assert((*cit)->get_type() == Num);
-		m_size = (*cit)->get_size();
+		m_size = sz;
 		m_sort.sz = m_size;
-		unsigned range = m_size;
-		assert(range > 0);
 
 		m_sort.type = arraytype;
 		m_sort.args.clear();
 		m_sort.args.push_back(SORT(width));
-		m_sort.args.push_back(SORT(range));
+		m_sort.args.push_back(SORT(m_size));
 		assert(m_size > 0);
 		assert(m_sort.sz > 0);
 	}
@@ -5643,7 +5995,7 @@ unsigned find_size(OpInst::OpType op, InstL& exps)
 		second++;
 		assert((*first)->get_type() == Num);
 		assert((*second)->get_type() == Num);
-		size = (*second)->get_size();
+		size = NumInst::as(*second)->get_num();
 		assert (size > 0);
 	}
 		break;
