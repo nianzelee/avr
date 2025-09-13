@@ -95,19 +95,19 @@ int main(int argc, char*argv[]) {
     reach.delete_solvers();
 	}else{
 		int ret = reach.verify();
-		cout << "\nVerification result: avr-";
+		cerr << "\nVerification result: avr-";
 		switch (ret) {
 		case 0:
-			cout << "h";
+			cerr << "h";
 			break;
 		case 1:
-			cout << "v";
+			cerr << "v";
 			break;
 		default:
-			cout << "err";
+			cerr << "err";
 			break;
 		}
-		cout << endl;
+		cerr << endl;
 		reach.delete_solvers();
 
 		reach.dump_execution_time(ret);
