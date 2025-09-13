@@ -10,6 +10,7 @@ pushd .
 if [[ ! -d yices2 ]]; then
   echo "  Installing Yices 2 from https://github.com/SRI-CSL/yices2 ..."
   git clone https://github.com/SRI-CSL/yices2.git
+  git -C yices2 checkout c0a2609283b62592e6abc7be03c81957351b81b4
 fi
 cd yices2
 autoconf
@@ -24,6 +25,7 @@ pushd .
 if [[ ! -d boolector ]]; then
   echo "  Installing Boolector from https://github.com/Boolector/boolector ..."
   git clone https://github.com/Boolector/boolector.git
+  git -C boolector checkout 43dae91c1070e5e2633e036ebd75ffb13fe261e1
 fi
 cd boolector
 ./contrib/setup-btor2tools.sh
@@ -50,8 +52,9 @@ popd
 ### Build and install btor2tools
 pushd .
 if [[ ! -d btor2tools ]]; then
-  echo "  Installing Btor2Tools from https://github.com/Boolector/btor2tools ..."
-  git clone https://github.com/Boolector/btor2tools.git
+  echo "  Installing Btor2Tools from https://github.com/hwmcc/btor2tools ..."
+  git clone https://github.com/hwmcc/btor2tools.git
+  git -C btor2tools checkout a8c7178d550b5e47195905c03174c354edb3b057
 fi
 cd btor2tools
 ./configure.sh --static
