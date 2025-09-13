@@ -13,6 +13,7 @@ import os
 import subprocess
 import argparse
 import ntpath
+from setuptools import distutils
 from distutils.spawn import find_executable
 
 version=2.2
